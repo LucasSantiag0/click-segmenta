@@ -41,11 +41,11 @@ const data = {
       url: "/routes",
       icon: Map,
     },
-    {
-      title: "Filtros",
-      url: "/filters",
-      icon: Filter,
-    },
+    // {
+    //   title: "Filtros",
+    //   url: "/filters",
+    //   icon: Filter,
+    // },
   ],
 }
 

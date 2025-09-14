@@ -1,5 +1,5 @@
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { DashboardMain } from "@/components/dashboard-main"
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { DashboardMain } from "@/components/dashboard-main";
 
 export default function HomePage() {
   return (
@@ -10,9 +10,10 @@ export default function HomePage() {
           <h1 className="text-xl font-semibold text-cs-white">Dashboard Principal</h1>
         </div>
       </header>
+
       <div className="flex-1 p-6">
         <DashboardMain />
       </div>
     </div>
-  )
+  );
 }
