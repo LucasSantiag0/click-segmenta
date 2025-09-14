@@ -13,7 +13,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pandas as pd
-import os
+import os 
+from sklearn.preprocessing import MinMaxScaler
+
 
 # -------------------------------------------
 # Configurações
@@ -278,7 +280,49 @@ def hourly():
     # formata hora
     hrs["label"] = hrs["hour"].apply(lambda h: f"{h:02d}h")
     return jsonify(hrs[["label","qtd","media"]].to_dict(orient="records")), 200
+################################################### ADIÇÃO ##############################################
+@app.get("/api/charts/segment_comparison_radar")
+def get_segment_comparison_radar():
+    """
+    Calcula as médias das métricas RFM por segmento, normaliza os dados
+    e os formata para o Gráfico Radar do Recharts.
+    """
+    # 1. Agrupar e calcular a média das métricas-chave por segmento
+    df_agg = DF.groupby("segmento").agg(
+        recencia_dias=("recencia_dias", "mean"),
+        frequencia=("frequencia", "mean"),
+        valor_monetario_total=("valor_monetario_total", "mean"),
+    ).reset_index()
+    
+    # Recência: valores menores são melhores. Vamos inverter a escala para a visualização.
+    # Um cliente com recência alta (ruim) terá um score baixo no gráfico.
+    df_agg['recencia_score'] = df_agg['recencia_dias'].max() - df_agg['recencia_dias']
 
+    # 2. Selecionar e normalizar as métricas para uma escala de 0 a 100
+    metrics_to_normalize = ['recencia_score', 'frequencia', 'valor_monetario_total']
+    scaler = MinMaxScaler(feature_range=(0, 100))
+    df_agg[metrics_to_normalize] = scaler.fit_transform(df_agg[metrics_to_normalize]).round(1)
+
+    # 3. Mapear IDs de segmento para nomes de personas
+    segment_labels = {
+        0: "Planejadores", 1: "Econômicos", 2: "Premium",
+        3: "Espontâneos", 4: "Leais", 5: "Novatos"
+    }
+    df_agg['segmento'] = df_agg['segmento'].map(segment_labels).fillna("Desconhecido")
+    
+    # 4. Reestruturar (pivotar) o DataFrame para o formato esperado pelo Recharts
+    df_pivot = df_agg.set_index('segmento')[metrics_to_normalize].transpose().reset_index()
+    df_pivot.rename(columns={'index': 'metric'}, inplace=True)
+    
+    # Renomear as métricas para serem mais amigáveis no gráfico
+    metric_names = {
+        'recencia_score': 'Atividade Recente',
+        'frequencia': 'Frequência de Compra',
+        'valor_monetario_total': 'Valor Monetário'
+    }
+    df_pivot['metric'] = df_pivot['metric'].map(metric_names)
+
+    return jsonify(df_pivot.to_dict(orient='records'))
 
 # -------------------------------------------
 # Boot
